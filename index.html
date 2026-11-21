@@ -1,0 +1,896 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Momo the Monkey</title>
+<script src="config.js"></script>
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" type="image/png" href="/icon-192.png">
+<link rel="apple-touch-icon" href="/icon-192.png">
+<meta name="theme-color" content="#f9d6f3">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --pink:#f9d6f3; --pink-dark:#f2a9dd; --hot:#e0558f; --brown:#7a4a2e; --ink:#4a2a1c; --card:#fff0fb;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; min-height:100vh; background:var(--pink); color:var(--ink);
+    font-family:'Press Start 2P',ui-monospace,monospace; font-size:11px; line-height:1.7;
+    display:flex; flex-direction:column; align-items:center; padding:24px 16px 48px;
+    background-image:
+      linear-gradient(45deg,#fbdff6 25%,transparent 25%,transparent 75%,#fbdff6 75%),
+      linear-gradient(45deg,#fbdff6 25%,transparent 25%,transparent 75%,#fbdff6 75%);
+    background-size:32px 32px; background-position:0 0,16px 16px;
+  }
+  h1{font-size:16px;margin:0 0 4px;color:var(--hot);text-shadow:2px 2px 0 #fff}
+  .sub{margin:0 0 18px;font-size:9px;opacity:.7}
+  .box{background:var(--card);border:4px solid var(--ink);box-shadow:4px 4px 0 var(--ink);padding:14px;width:100%;max-width:460px}
+  .stage{display:flex;flex-direction:column;align-items:center;gap:10px;margin-bottom:18px}
+  .bubble{position:relative;min-height:64px;display:flex;align-items:center;justify-content:center;text-align:center;font-size:11px}
+  .bubble::after{content:"";position:absolute;bottom:-14px;left:50%;margin-left:-8px;border:8px solid transparent;border-top:10px solid var(--ink)}
+  #monkey{width:288px;height:288px;image-rendering:pixelated;animation:bob 1s steps(1) infinite}
+  #monkey.happy{animation:hop .5s steps(2) infinite}
+  #sprite{position:relative;width:288px;height:288px}
+  #sprite #monkey{display:block}
+  #monkey{transform-origin:50% 90%}
+  #monkey.weak{animation:slump 1.6s steps(1) infinite}
+  #monkey.sick{animation:shake .4s steps(1) infinite}
+  #monkey.faint{animation:wobble 1s steps(1) infinite}
+  #monkey.dying{animation:fall 3s steps(1) forwards}
+  #monkey.dead{animation:none}
+  @keyframes slump{0%{transform:translateY(0)}50%{transform:translateY(5px)}}
+  @keyframes shake{0%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+  @keyframes wobble{0%{transform:rotate(-7deg)}50%{transform:rotate(7deg)}}
+  @keyframes fall{
+    0%{transform:rotate(-8deg)} 15%{transform:rotate(8deg)} 30%{transform:rotate(-8deg)} 45%{transform:rotate(8deg)}
+    60%{transform:rotate(30deg) translateY(10px)} 75%{transform:rotate(60deg) translateY(30px)} 90%{transform:rotate(90deg) translateY(50px)}
+    100%{transform:rotate(90deg) translateY(50px)}
+  }
+  #ghost{display:none;position:absolute;left:69px;top:0;width:150px;height:150px;image-rendering:pixelated;pointer-events:none;z-index:3}
+  #ghost.on{display:block;animation:ghostrise 3.6s steps(18) forwards, ghostbob 1.2s steps(2) 3.6s infinite}
+  @keyframes ghostrise{from{transform:translateY(90px);opacity:0}to{transform:translateY(-30px);opacity:.9}}
+  @keyframes ghostbob{0%{transform:translateY(-30px)}50%{transform:translateY(-44px)}}
+  #monkey.party{animation:party 2.4s steps(1) infinite;position:relative;z-index:2}
+  /* two little hops, then one big jump with a full spin */
+  @keyframes party{
+    0%{transform:translateY(0)} 8%{transform:translateY(-24px)} 16%{transform:translateY(0)}
+    24%{transform:translateY(-24px)} 32%{transform:translateY(0)}
+    40%{transform:translateY(-48px) rotate(0deg)} 50%{transform:translateY(-60px) rotate(90deg)}
+    60%{transform:translateY(-60px) rotate(180deg)} 70%{transform:translateY(-48px) rotate(270deg)}
+    80%{transform:translateY(0) rotate(360deg)} 100%{transform:translateY(0) rotate(360deg)}
+  }
+  @keyframes bob{0%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+  @keyframes hop{0%{transform:translateY(0)}50%{transform:translateY(-18px)}}
+  .meter{display:flex;gap:6px;align-items:center;font-size:9px}
+  .heart{width:14px;height:12px;background:#fff;border:2px solid var(--ink)}
+  .heart.on{background:var(--hot)}
+  h2{font-size:11px;margin:0 0 10px;color:var(--hot)}
+  .task{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:3px dotted var(--pink-dark)}
+  .task:first-of-type{border-top:0}
+  .task .t{flex:1;word-break:break-word}
+  .task small{display:block;font-size:8px;opacity:.65;margin-top:2px}
+  .task.due .t{color:var(--hot)}
+  .task.overdue .t{color:#8a2a2a}
+  .task.done .t{text-decoration:line-through;opacity:.45}
+  button{font-family:inherit;font-size:9px;border:3px solid var(--ink);background:#ffe66b;color:var(--ink);padding:8px 10px;cursor:pointer;box-shadow:3px 3px 0 var(--ink)}
+  button:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink)}
+  button.pink{background:var(--pink-dark)}
+  button.ghost{background:#fff}
+  .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+  input{font-family:inherit;font-size:9px;width:100%;padding:8px;border:3px solid var(--ink);background:#fff}
+  details{margin-top:14px}
+  summary{cursor:pointer;font-size:10px}
+  .note{font-size:8px;opacity:.75;line-height:1.9}
+  .stack{display:flex;flex-direction:column;gap:14px;width:100%;align-items:center}
+  code{background:#fff;padding:1px 4px}
+  #adopt{position:fixed;inset:0;z-index:50;background:rgba(249,214,243,.97);overflow:auto;display:flex;align-items:flex-start;justify-content:center;padding:20px 14px}
+  #adopt[hidden]{display:none}
+  .adoptbox{margin:auto;text-align:left}
+  .adoptbox h2{text-align:center}
+  .adoptbox label{display:block;margin-bottom:6px}
+  .portrait{display:block;margin:6px auto 10px;width:128px;height:128px;image-rendering:pixelated}
+  .portrait.small{width:88px;height:88px;margin:6px auto}
+  @media (hover:none){ input{font-size:16px} }
+  #paperBtn,#dressBtn{font-size:8px;padding:6px 8px}
+  .portrait.big{width:160px;height:160px}
+  .dlabel{font-size:8px;margin:12px 0 6px;color:var(--hot)}
+  .opts{display:flex;flex-wrap:wrap;gap:8px}
+  .opt{font-size:8px;padding:7px 8px;background:#fff}
+  .opt.on{background:var(--pink-dark)}
+  .tabs{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 12px}
+  .tab{font-size:8px;padding:7px 8px;background:#fff}
+  .tab.on{background:var(--pink-dark)}
+  .tab .cnt{color:var(--hot);font-weight:bold}
+  .tab.on .cnt{color:var(--ink)}
+  .swatch{width:34px;height:34px;padding:0;border:3px solid var(--ink)}
+  .swatch.on{outline:4px solid var(--hot);outline-offset:1px}
+  .paper{margin:auto;width:100%;max-width:470px}
+  .paper-in{position:relative;background:#fffbe8;border:4px solid var(--ink);box-shadow:5px 5px 0 var(--ink);padding:18px 16px 22px;text-align:center;
+    background-image:repeating-linear-gradient(0deg,transparent 0 26px,#f6edc8 26px 27px)}
+  .paper-in::before{content:"";position:absolute;inset:6px;border:3px dashed var(--pink-dark);pointer-events:none}
+  .cert-top{font-size:8px;color:var(--hot);letter-spacing:1px}
+  .paper h3{font-size:13px;margin:8px 0 2px;color:var(--ink)}
+  .cert-line{font-size:8px;margin:6px 0;opacity:.8}
+  .cert-name{font-size:20px;margin:6px 0;color:var(--hot);word-break:break-word;text-shadow:2px 2px 0 #fff}
+  .cert-owner{font-size:12px;margin:6px 0;word-break:break-word}
+  .cert-table{width:100%;margin:12px 0;border-collapse:collapse;font-size:8px;text-align:left}
+  .cert-table td{padding:5px 6px;border:2px solid var(--pink-dark)}
+  .cert-table td:first-child{background:#ffe9f8;white-space:nowrap}
+  .cert-promise{font-size:8px;line-height:1.9;margin:10px 4px}
+  .cert-sign{display:flex;justify-content:space-around;gap:10px;margin-top:18px}
+  .sig{font-size:11px;min-height:22px;border-bottom:3px solid var(--ink);padding:0 6px 4px;min-width:120px;word-break:break-word}
+  .sigline{font-size:7px;opacity:.7;margin-top:4px}
+  .stamp{position:absolute;right:16px;top:70px;transform:rotate(-14deg);border:4px solid #d63a5e;color:#d63a5e;font-size:12px;padding:6px 8px;background:rgba(255,251,232,.6);opacity:0}
+  .stamp.thump{animation:thump .9s steps(5) .5s forwards}
+  @keyframes thump{0%{opacity:0;transform:rotate(-14deg) scale(3.2)}60%{opacity:1;transform:rotate(-14deg) scale(.9)}100%{opacity:.9;transform:rotate(-14deg) scale(1)}}
+  .paw{position:absolute;left:20px;bottom:64px;font-size:22px;opacity:.55;transform:rotate(-18deg)}
+  .cert-actions{margin-top:16px}
+  @media print{
+    body>*:not(#adopt){display:none!important}
+    #adopt{position:static;background:#fff;padding:0}
+    .cert-actions{display:none!important}
+  }
+</style>
+</head>
+<body>
+<h1 id="title">MOMO THE MONKEY</h1>
+<p class="sub">your pet. your to-dos. nom nom.</p>
+
+<div class="stack">
+  <div class="box stage">
+    <div class="bubble" id="bubble">Hi! I'm Momo.</div>
+    <div id="sprite"><canvas id="monkey" width="32" height="32"></canvas><canvas id="ghost" width="32" height="32"></canvas></div>
+    <button id="reviveBtn" class="pink" hidden>Revive Momo 🍌</button>
+    <div class="meter"><span>HEALTH</span><span id="hearts" style="display:flex;gap:4px"></span><span id="fedCount"></span></div>
+    <div class="row" style="margin:0;justify-content:center">
+      <button id="dressBtn" class="ghost">👗 Dress up</button>
+      <button id="paperBtn" class="ghost">📜 Adoption paper</button>
+    </div>
+  </div>
+
+  <div class="box">
+    <h2 id="tasksTitle">TASKS - Keep Momo alive!</h2>
+    <div class="tabs" id="tabs">
+      <button class="tab" data-tab="all">All <span class="cnt"></span></button>
+      <button class="tab" data-tab="cal">📅 Calendar <span class="cnt"></span></button>
+      <button class="tab" data-tab="todo">☑ To-do <span class="cnt"></span></button>
+      <button class="tab" data-tab="mail">✉ Emails <span class="cnt"></span></button>
+    </div>
+    <div id="tasks"></div>
+    <div class="row">
+      <button id="notifyBtn" class="pink">Turn on notifications</button>
+      <button id="refreshBtn" class="ghost">Refresh</button>
+      <button id="testBtn" class="ghost" hidden>🔔 Test reminder</button>
+    </div>
+  </div>
+
+  <div class="box">
+    <h2>CONNECT</h2>
+    <div class="row" style="margin-top:0">
+      <button id="demoBtn" class="ghost">Demo mode</button>
+      <button id="connectBtn">Connect Google</button>
+      <button id="disconnectBtn" class="ghost" hidden>Disconnect</button>
+    </div>
+    <p class="note" id="status">Not connected. Demo mode shows pretend tasks.</p>
+    <details id="setup">
+      <summary>Google setup (one time)</summary>
+      <p class="note">
+        1. Go to Google Cloud Console, create a project.<br>
+        2. Enable <b>Google Calendar API</b> and <b>Gmail API</b>.<br>
+        3. Credentials &rarr; Create OAuth client ID &rarr; Web app. Add <code id="origin"></code> as an authorized JavaScript origin.<br>
+        4. Paste the client ID below.<br>
+        Only read access is requested. Nothing leaves your browser except calls to Google.
+      </p>
+      <input id="clientId" placeholder="xxxx.apps.googleusercontent.com">
+      <label class="note" style="display:block;margin-top:10px"><input type="checkbox" id="useMail" style="width:auto"> Also show starred unread emails as tasks</label>
+      <label class="note" style="display:block;margin-top:6px">Notify me <input id="lead" type="number" min="0" max="120" value="10" style="width:56px;display:inline"> min before events</label>
+      <label class="note" style="display:block;margin-top:10px">Preview Momo's health: <b id="hpVal">100</b><input type="range" id="hpTest" min="0" max="100" value="100"></label>
+      <p class="note">Drag the slider to see every stage, down to the tombstone. Health drains while tasks go unfed.</p>
+    </details>
+  </div>
+</div>
+
+<!-- Adoption center -->
+<div id="adopt" hidden>
+  <div id="adoptForm" class="box adoptbox">
+    <h2>MONKEY ADOPTION CENTER</h2>
+    <canvas id="adoptPic" width="32" height="32" class="portrait"></canvas>
+    <p class="note" style="text-align:center">A tiny monkey needs a home, a name, and someone to do their chores. Will you take care of them?</p>
+    <label class="note">Name your monkey</label>
+    <input id="petName" name="monkey-nickname-x" maxlength="14" placeholder="e.g. Bananas" autocomplete="off" autocorrect="off" spellcheck="false" data-lpignore="true" data-form-type="other">
+    <label class="note" style="margin-top:12px;display:block">Your name (for the paperwork)</label>
+    <input id="ownerName" name="paperwork-label-x" maxlength="24" placeholder="optional" autocomplete="off" autocorrect="off" spellcheck="false" data-lpignore="true" data-form-type="other">
+    <p class="note" id="adoptErr" style="color:#b0305a;min-height:16px"></p>
+    <div class="row" style="justify-content:center"><button id="adoptBtn">Adopt me! 🍌</button></div>
+  </div>
+
+  <div id="adoptCert" class="paper" hidden>
+    <div class="paper-in">
+      <div class="cert-top">★ MONKEY ADOPTION AGENCY ★</div>
+      <h3>CERTIFICATE OF ADOPTION</h3>
+      <canvas id="certPic" width="32" height="32" class="portrait small"></canvas>
+      <p class="cert-line">This is to certify that</p>
+      <p class="cert-name" id="certName"></p>
+      <p class="cert-line">a very good pixel monkey, was officially adopted by</p>
+      <p class="cert-owner" id="certOwner"></p>
+      <p class="cert-line">on <span id="certDate"></span></p>
+      <table class="cert-table">
+        <tr><td>Species</td><td>Pixelus bananus</td></tr>
+        <tr><td>Pet ID</td><td id="certId"></td></tr>
+        <tr><td>Diet</td><td>Calendar events, to-dos &amp; the odd banana</td></tr>
+        <tr><td>Shots</td><td>Banana booster ✓ (1 of 1)</td></tr>
+        <tr><td>Special skill</td><td>Tongue wiggles &amp; victory spins</td></tr>
+      </table>
+      <p class="cert-promise">I promise to feed <b class="petn"></b> on time, to never let <b class="petn"></b> turn into a ghost, and to say thank you for every snack.</p>
+      <div class="cert-sign">
+        <div><div class="sig" id="certSign"></div><div class="sigline">Adopter</div></div>
+        <div><div class="sig">Dr. Banana</div><div class="sigline">Chief Monkey Officer</div></div>
+      </div>
+      <div class="stamp" id="stamp">APPROVED</div>
+      <div class="paw">🐾</div>
+    </div>
+    <div class="row cert-actions" style="justify-content:center">
+      <button id="printBtn" class="ghost">Print / save</button>
+      <button id="homeBtn">Take <span class="petn"></span> home 🏠</button>
+    </div>
+  </div>
+
+  <div id="adoptSignin" class="box adoptbox" hidden>
+    <h2>ONE LAST THING</h2>
+    <canvas id="signinPic" width="32" height="32" class="portrait"></canvas>
+    <p class="note" style="text-align:center">Sign in with Google so <b class="petn"></b> can see your calendar and to-dos and tell you when it's time to do things. You only do this once.</p>
+    <p class="note" id="signinMsg" style="color:#b0305a;text-align:center;min-height:16px"></p>
+    <div class="row" style="justify-content:center;flex-direction:column;align-items:center;gap:14px">
+      <button id="signinBtn">Sign in with Google</button>
+      <button id="signinLater" class="ghost">Maybe later</button>
+    </div>
+  </div>
+
+  <div id="adoptDress" class="box adoptbox" hidden>
+    <h2>DRESS UP <span class="petn"></span>!</h2>
+    <canvas id="dressPic" width="32" height="32" class="portrait big"></canvas>
+    <div class="dlabel">Fur colour</div><div id="furRow" class="opts"></div>
+    <div class="dlabel">Hat</div><div id="hatRow" class="opts"></div>
+    <div class="dlabel">Extras</div><div id="extraRow" class="opts"></div>
+    <div class="row" style="justify-content:center;margin-top:16px">
+      <button id="randBtn" class="ghost">Surprise me 🎲</button>
+      <button id="dressDone">Done ✨</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ---------- tiny pixel art engine (32x32) ---------- */
+const N = 32, canvas = document.getElementById('monkey'), ctx = canvas.getContext('2d');
+const C = {
+  brown:'#8b5a3c', dark:'#6b4029', tan:'#f2d5b8', tanShade:'#e8bd98', cheek:'#f4a0b5',
+  ink:'#3d2314', pink:'#ec5b93', pinkLt:'#f7a1c4', green:'#6cc04a', yellow:'#ffd93b', white:'#fff',
+  mouth:'#9b2f48', tongue:'#f27f95', banana:'#ffe14d', bananaDk:'#d9a82a', tear:'#6fb7ff'
+};
+let grid;
+const px=(x,y,c)=>{x=Math.round(x);y=Math.round(y);if(x>=0&&y>=0&&x<N&&y<N)grid[y*N+x]=c};
+const ell=(cx,cy,rx,ry,c)=>{for(let y=Math.floor(cy-ry);y<=Math.ceil(cy+ry);y++)for(let x=Math.floor(cx-rx);x<=Math.ceil(cx+rx);x++)if(((x-cx)/rx)**2+((y-cy)/ry)**2<=1)px(x,y,c)};
+const rect=(x,y,w,h,c)=>{for(let j=0;j<h;j++)for(let i=0;i<w;i++)px(x+i,y+j,c)};
+const pts=(arr,c)=>arr.forEach(([x,y])=>px(x,y,c));
+
+/* ---------- dress-up ---------- */
+const FUR={
+  brown:{brown:'#8b5a3c',dark:'#6b4029',tan:'#f2d5b8',tanShade:'#e8bd98'},
+  golden:{brown:'#d9a24a',dark:'#b57f2c',tan:'#fbe8c0',tanShade:'#f0d29a'},
+  charcoal:{brown:'#4f4f5c',dark:'#34343d',tan:'#d9d6df',tanShade:'#b9b5c4'},
+  snow:{brown:'#f1ece6',dark:'#cfc6bd',tan:'#ffe9dc',tanShade:'#f3d9c9'},
+  strawberry:{brown:'#f08bb2',dark:'#d36592',tan:'#ffe3ee',tanShade:'#ffc7dc'},
+  blueberry:{brown:'#7aa5e6',dark:'#5780c2',tan:'#e6f0ff',tanShade:'#c9dcfb'}
+};
+function drawCoat(){
+  const c='#fff1f6', s='#f0c9db', l='#ffffff';
+  ell(16,23,8,6.8,c); ell(8.5,22,2.6,3.6,c); ell(23.5,22,2.6,3.6,c);
+  ell(16,25,2,4.2,C.tan); // open front shows the tummy
+  pts([[11,21],[13,25],[19,21],[21,25],[12,19],[20,19],[10,24],[22,24],[9,21],[23,21],[11,27],[21,27]],s);
+  pts([[8,26],[7,24],[24,26],[25,24],[10,29],[13,29],[19,29],[22,29]],c);
+  ell(16,19,7.5,1.6,l); pts([[9,19],[11,20],[13,20],[19,20],[21,20],[23,19]],s);
+}
+function drawHat(){
+  const h=look.hat;
+  if(h==='party'){ px(16,0,C.yellow); rect(15,1,3,1,C.pink); rect(14,2,5,1,C.yellow); rect(13,3,7,1,C.pink); rect(12,4,9,1,C.yellow); rect(11,5,11,1,C.pink); px(15,3,C.white); px(18,2,C.white); px(13,5,C.white); px(19,4,C.white); }
+  else if(h==='beanie'){ const t='#4fb3bf',b='#2f8791'; rect(15,0,3,1,C.white); rect(14,1,5,1,t); rect(12,2,9,1,t); rect(11,3,11,1,t); rect(10,4,13,1,b); rect(9,5,15,1,b); pts([[13,2],[16,3],[19,2]],'#7fd0d8'); }
+  else if(h==='tophat'){ const k='#2a2a33'; rect(12,1,9,4,k); rect(12,4,9,1,C.pink); rect(9,5,15,1,k); px(13,2,'#5b5b6b'); px(13,3,'#5b5b6b'); }
+  else if(h==='crown'){ const g='#ffcf3a'; rect(11,3,11,3,g); rect(11,5,11,1,'#d9a82a'); pts([[11,2],[13,2],[15,2],[17,2],[19,2],[21,2],[11,1],[16,1],[21,1],[16,0]],g); px(13,4,C.pink); px(16,4,'#6fb7ff'); px(19,4,C.pink); }
+}
+function drawPhones(){
+  const d='#3a3a44';
+  for(let a=Math.PI;a<=2*Math.PI;a+=0.035) px(16+10.6*Math.cos(a),10+9.2*Math.sin(a),d); // headband
+  ell(4.5,11,2,3,d); ell(27.5,11,2,3,d); px(4,10,'#8a8a99'); px(27,10,'#8a8a99');             // ear cups
+  pts([[28,14],[29,15],[29,16],[29,17],[30,18],[30,19],[29,20],[29,21],[28,22]],d); rect(27,23,2,2,'#8a8a99'); // wire + plug
+}
+function drawShades(){
+  const k='#1d1d24';
+  rect(11,10,4,3,k); rect(18,10,4,3,k); pts([[15,10],[16,10],[17,10]],k); pts([[10,10],[9,10],[8,10]],k); pts([[22,10],[23,10],[24,10]],k);
+  px(12,10,'#cfd4ff'); px(19,10,'#cfd4ff'); px(13,11,'#5a5a72'); px(20,11,'#5a5a72');
+}
+function drawGrave(){
+  ell(16,12,7,6,'#cfd2da'); rect(9,12,14,16,'#cfd2da'); rect(21,12,2,15,'#b4b8c4');
+  const L={R:['XX.','X.X','XX.','X.X','X.X'],I:['XXX','.X.','.X.','.X.','XXX'],P:['XX.','X.X','XX.','X..','X..']};
+  [['R',11],['I',15],['P',19]].forEach(([ch,x0])=>L[ch].forEach((row,j)=>[...row].forEach((v,i)=>{if(v==='X')px(x0+i,15+j,'#6b6f7c')})));
+  rect(0,27,32,5,'#7cc062'); rect(0,29,32,3,'#68ad4f');
+  pts([[3,26],[7,26],[26,26],[29,26],[12,26],[20,26]],'#7cc062');
+  pts([[5,26],[5,25]],C.green); px(5,24,C.pink); px(4,24,C.pinkLt); px(6,24,C.pinkLt);
+  pts([[24,26],[25,25],[26,26],[25,27]],C.pink); // the little bow left behind
+  pts([[27,28],[28,28],[29,27]],C.banana);
+}
+function blend(hex,hex2,a){
+  const p=h=>{h=h.replace('#','');if(h.length===3)h=[...h].map(x=>x+x).join('');return [0,2,4].map(i=>parseInt(h.substr(i,2),16))};
+  const A=p(hex),B=p(hex2);return '#'+A.map((v,i)=>Math.round(v*(1-a)+B[i]*a).toString(16).padStart(2,'0')).join('');
+}
+function tintFor(mood){
+  if(mood==='ghost'){const m={[C.brown]:'#bfe0f5',[C.dark]:'#a9d2ee',[C.tan]:'#f0faff',[C.tanShade]:'#d6efff'};return c=>m[c]||c}
+  if(mood==='sick') return c=>blend(c,'#7fd35a',.4);
+  if(mood==='faint'||mood==='dying') return c=>blend(c,'#8fb58a',.55);
+  if(mood==='weak') return c=>blend(c,'#bdb3ad',.35);
+  return c=>c;
+}
+function flush(c2,mood){
+  const out = grid.slice();
+  for(let y=0;y<N;y++)for(let x=0;x<N;x++){
+    if(grid[y*N+x])continue;
+    if([[1,0],[-1,0],[0,1],[0,-1]].some(([dx,dy])=>{const nx=x+dx,ny=y+dy;return nx>=0&&ny>=0&&nx<N&&ny<N&&grid[ny*N+nx]}))out[y*N+x]=C.ink;
+  }
+  const map=tintFor(mood);
+  c2.clearRect(0,0,N,N);
+  out.forEach((c,i)=>{if(c){c2.fillStyle=c===C.ink?c:map(c);c2.fillRect(i%N,Math.floor(i/N),1,1)}});
+}
+function drawMonkey(mood, frame, cx=ctx){
+  grid = new Array(N*N).fill(null);
+  if(mood==='dead'){ drawGrave(); flush(cx,mood); return; }
+  const eating = mood==='eating';
+  // party alternates between a joyful face and the cheeky tongue-out face
+  const face = mood==='party' ? (Math.floor(frame/3)%2 ? 'cheeky' : 'joy') : mood;
+  Object.assign(C, FUR[look.fur]||FUR.brown); // chosen fur colour
+  // tail with bow
+  pts([[8,27],[7,27],[6,26],[5,25],[5,24],[4,23],[4,22],[4,21],[4,20],[5,19],[5,18],[6,17],[7,17]],C.brown);
+  pts([[8,26],[7,26],[6,25],[6,24],[5,23],[5,22],[5,21],[5,20],[6,19],[6,18]],C.brown);
+  // bow
+  if(look.bow){ rect(5,15,2,2,C.pink); rect(8,15,2,2,C.pink); rect(7,16,1,1,C.pinkLt); px(6,15,C.pinkLt); px(9,15,C.pinkLt); }
+  // body, arms, feet
+  ell(16,23,7,6,C.brown);
+  ell(16,24,4,4,C.tanShade); ell(16,24,3,3,C.tan);
+  ell(9,22,2,3,C.brown); ell(23,22,2,3,C.brown);
+  if(look.coat) drawCoat();
+  ell(11,28,3.5,2.5,C.dark); ell(11,28,2.5,1.5,C.tan);
+  ell(21,28,3.5,2.5,C.dark); ell(21,28,2.5,1.5,C.tan);
+  // ears
+  ell(6,11,3,3.5,C.brown); ell(6,11,1.5,2,C.tan);
+  ell(26,11,3,3.5,C.brown); ell(26,11,1.5,2,C.tan);
+  // head
+  ell(16,10,9.5,8,C.brown);
+  // face (heart shaped)
+  ell(12.5,11,4.5,4,C.tan); ell(19.5,11,4.5,4,C.tan); ell(16,14,6.5,4.5,C.tan);
+  // head curl
+  pts([[16,2],[17,2],[18,3],[18,4],[17,5],[16,4],[16,3]],C.dark);
+  drawHat();
+  if(look.phones) drawPhones();
+  if(look.flower){
+    ell(11,5.5,1,1,C.pink); px(11,3,C.pink); px(11,8,C.pink); px(8,5,C.pink); px(13,5,C.pink);
+    rect(10,4,3,3,C.pink); px(11,5,C.yellow);
+    pts([[8,7],[7,7],[7,6],[8,8]],C.green); pts([[8,3],[9,3],[9,4]],C.green);
+  }
+  // cheeks
+  rect(9,14,2,1,C.cheek); rect(21,14,2,1,C.cheek);
+  // eyes
+  const eyeY = 11;
+  if(face==='cheeky'){
+    // left eye open, right eye winking
+    rect(12,eyeY,2,2,C.ink); px(12,eyeY,C.white);
+    pts([[18,12],[19,11],[20,11],[21,12]],C.ink);
+  } else if(face==='joy'){
+    // happy closed eyes ^ ^
+    pts([[11,12],[12,11],[13,11],[14,12]],C.ink);
+    pts([[18,12],[19,11],[20,11],[21,12]],C.ink);
+  } else if(mood==='ghost'){
+    pts([[11,12],[12,11],[13,11],[14,12]],C.ink);
+    pts([[18,12],[19,11],[20,11],[21,12]],C.ink);
+  } else if(mood==='weak'){
+    // heavy droopy eyelids and sad brows
+    pts([[12,11],[13,11],[19,11],[20,11]],C.dark);
+    pts([[12,12],[13,12],[19,12],[20,12]],C.ink);
+    pts([[11,9],[12,10],[13,10]],C.dark); pts([[21,9],[20,10],[19,10]],C.dark);
+  } else if(mood==='sick'){
+    // dizzy swirl eyes
+    [12,19].forEach(x0=>{ pts([[x0-1,10],[x0,10],[x0+1,10],[x0+1,11],[x0+1,12],[x0,12],[x0-1,12],[x0-1,11],[x0,11]],C.ink); px(x0,11,C.white); });
+  } else if(mood==='faint'||mood==='dying'){
+    // X eyes
+    [12,19].forEach(x0=>pts([[x0-1,10],[x0+1,10],[x0,11],[x0-1,12],[x0+1,12]],C.ink));
+  } else if(mood==='sleep'){
+    pts([[12,12],[13,12],[19,12],[20,12]],C.ink);
+  } else if(mood==='hungry'){
+    rect(12,10,2,3,C.ink); rect(19,10,2,3,C.ink); px(12,10,C.white); px(19,10,C.white);
+  } else if(mood==='blink'){
+    pts([[12,12],[13,12],[19,12],[20,12]],C.ink);
+  } else {
+    rect(12,eyeY,2,2,C.ink); rect(19,eyeY,2,2,C.ink); px(12,eyeY,C.white); px(19,eyeY,C.white);
+  }
+  if(look.shades) drawShades();
+  // nose
+  rect(15,13,3,1,C.dark);
+  // mouth
+  if(face==='cheeky'){
+    // big grin with the tongue sticking out, off to one side
+    pts([[13,15],[14,16],[15,17],[16,17],[17,17],[18,17],[19,16],[20,15]],C.ink);
+    rect(17,18,3,3,C.tongue); px(18,18,C.mouth); px(18,19,C.mouth); px(19,20,C.tongue);
+    px(20,14,C.cheek); px(9,14,C.cheek);
+  } else if(face==='joy'){
+    ell(16.5,16.5,3,2,C.mouth); rect(15,17,3,1,C.tongue);
+  } else if(mood==='weak'){
+    pts([[13,17],[14,16],[15,17],[16,16],[17,17],[18,16],[19,17]],C.ink); // wobbly mouth
+  } else if(mood==='sick'){
+    pts([[13,16],[14,17],[15,16],[16,17],[17,16],[18,17]],C.ink); rect(17,18,2,3,C.tongue); px(17,20,C.mouth);
+  } else if(mood==='faint'||mood==='dying'){
+    ell(16.5,17,2,2,C.mouth); rect(16,18,2,4,C.tongue); px(16,21,C.mouth); // tongue lolling out
+  } else if(mood==='hungry'){
+    ell(16.5,16.5,2,1.6,C.mouth); px(16,17,C.tongue); px(17,17,C.tongue);
+  } else if(eating){
+    const open = frame%2===0;
+    if(open){ ell(16.5,16.5,2.5,2,C.mouth); px(16,17,C.tongue); px(17,17,C.tongue); }
+    else pts([[14,16],[15,17],[16,17],[17,17],[18,17],[19,16]],C.ink);
+    // banana shrinking
+    const size = Math.max(1,5-Math.floor(frame/2));
+    for(let i=0;i<size;i++){ px(21+i*0.8,20-i*0.8,C.banana); px(21+i*0.8,21-i*0.8,C.bananaDk); }
+  } else if(mood==='sad'){
+    pts([[14,17],[15,16],[16,16],[17,16],[18,16],[19,17]],C.ink);
+    px(10,13,C.tear); px(10,14,C.tear);
+  } else if(mood==='sleep'){
+    pts([[15,16],[16,16],[17,16]],C.ink);
+  } else {
+    pts([[13,15],[14,16],[15,17],[16,17],[17,17],[18,17],[19,16],[20,15]],C.ink);
+  }
+  // sleeping zzz
+  if(mood==='sleep'){ pts([[25,4],[26,4],[27,4],[26,5],[25,6],[26,6],[27,6]],C.pink); }
+  if(mood==='happy'||mood==='party'||mood==='cheeky'||eating){ pts([[4,6],[3,5],[5,5],[4,5],[4,4]],C.pink); pts([[27,3],[26,2],[28,2],[27,2],[27,1]],C.pink); }
+  // health extras: sweat drop, halo starting to appear, ghost wings
+  if(mood==='weak'){ rect(23,7,2,2,C.tear); px(24,6,C.tear); }
+  if(mood==='sick'){ pts([[23,8],[24,7],[25,8]],C.green); pts([[6,8],[7,7]],C.green); }
+  if(mood==='faint'||mood==='dying'||mood==='ghost'){ rect(12,0,9,1,C.yellow); px(11,1,C.yellow); px(21,1,C.yellow); }
+  if(mood==='ghost'){ rect(2,17,3,2,C.white); rect(1,19,3,1,C.white); rect(27,17,3,2,C.white); rect(28,19,3,1,C.white); }
+  flush(cx,mood);
+}
+
+/* ---------- state ---------- */
+const $ = id => document.getElementById(id);
+const store = {
+  get(k,d){try{const v=localStorage.getItem(k);return v===null?d:JSON.parse(v)}catch(e){return d}},
+  set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+};
+const today = () => new Date().toDateString();
+let tasks = [];
+let mode = store.get('mode','none');          // 'none' | 'demo' | 'google'
+let done = new Set(store.get('done',[]));
+let notified = new Set(store.get('notified',[]));
+let fed = store.get('fed',{day:today(),n:0});
+if(fed.day!==today()) fed={day:today(),n:0};
+let cheekyUntil = 0, partyUntil = 0;
+let tab = store.get('tab','all');
+let pet = store.get('pet',null);
+let look = Object.assign({fur:'brown',flower:false,hat:'none',phones:false,coat:false,shades:false,bow:false,seen:false}, store.get('look',{}));
+const pn = () => pet ? pet.name : 'Momo';
+let hp = store.get('hp',100), hpTs = store.get('hpTs',Date.now()), deadAt = store.get('deadAt',0);
+const saveHealth=()=>{store.set('hp',hp);store.set('hpTs',hpTs);store.set('deadAt',deadAt)};
+// Health drains while any task is due/overdue and unfed; recovers when nothing is waiting.
+function tickHealth(){
+  const now=Date.now(), dt=Math.min((now-hpTs)/60000,60); hpTs=now;
+  if(mode!=='none' && !deadAt){
+    const unfed=tasks.filter(t=>{const s=statusOf(t,now);return s==='due'||s==='overdue'}).length;
+    if(unfed>0) hp=Math.max(0,hp-dt*0.6*Math.min(unfed,3));
+    else hp=Math.min(100,hp+dt*2);
+    if(hp<=0) deadAt=now;
+  }
+  saveHealth();
+}
+function revive(){ deadAt=0; hp=Math.max(hp,30); cheekyUntil=Date.now()+3000; saveHealth(); render(); }
+let token = null, tokenExp = 0, eatingUntil = 0, eatFrame = 0, blinkUntil = 0;
+
+const saveSets=()=>{store.set('done',[...done].slice(-300));store.set('notified',[...notified].slice(-300));store.set('fed',fed)};
+const lead = () => (parseInt($('lead').value,10)||0)*60000;
+
+function statusOf(t, now=Date.now()){
+  if(done.has(t.id)) return 'done';
+  if(!t.start) return 'due';                   // email snacks are always due
+  if(now > t.end) return 'overdue';
+  if(now >= t.start - (t.noLead?0:lead())) return 'due';
+  return 'upcoming';
+}
+
+/* ---------- demo + google data ---------- */
+function demoTasks(){
+  const base = store.get('demoBase',null) || (()=>{const b=Date.now();store.set('demoBase',b);return b})();
+  const m=60000, mk=(i,title,off,len=15)=>({id:'demo'+i,title,start:base+off*m,end:base+(off+len)*m,src:'cal'});
+  return [
+    mk(1,'Drink a glass of water',0.3,5),
+    mk(2,'Finish the slides',20,60),
+    {id:'demo3',title:'Reply: lunch on Friday?',sub:'Sam',src:'mail'},
+    {id:'demo6',title:'Pack gym bag',src:'task'},
+    mk(4,'Stretch your back',45,10),
+    mk(5,'Team standup',90,15)
+  ];
+}
+
+async function g(url){
+  const r = await fetch(url,{headers:{Authorization:'Bearer '+token}});
+  if(r.status===401){ token=null; throw new Error('expired'); }
+  if(!r.ok) throw new Error('Google said '+r.status);
+  return r.json();
+}
+let taskErr='';
+async function googleTasks(){
+  taskErr='';
+  const now=new Date(), min=new Date(now.getTime()-3*3600000).toISOString();
+  const end=new Date(now); end.setDate(end.getDate()+1); end.setHours(23,59,59,0);
+  const cal = await g('https://www.googleapis.com/calendar/v3/calendars/primary/events?singleEvents=true&orderBy=startTime&maxResults=25&timeMin='+encodeURIComponent(min)+'&timeMax='+encodeURIComponent(end.toISOString()));
+  const out = (cal.items||[]).filter(e=>e.status!=='cancelled').map(e=>{
+    const s=e.start.dateTime||e.start.date, en=e.end.dateTime||e.end.date;
+    return {id:'cal'+e.id+s,title:e.summary||'(no title)',start:new Date(s).getTime(),end:new Date(en).getTime(),src:'cal'};
+  });
+  // Google Tasks (the to-do list)
+  try{
+    const lists = await g('https://tasks.googleapis.com/tasks/v1/users/@me/lists?maxResults=20');
+    for(const l of (lists.items||[])){
+      const tl = await g('https://tasks.googleapis.com/tasks/v1/lists/'+l.id+'/tasks?showCompleted=false&showHidden=false&maxResults=50');
+      for(const t of (tl.items||[])){
+        if(!t.title || t.status==='completed') continue;
+        const o={id:'task'+t.id,title:t.title,src:'task',listId:l.id,rawId:t.id,sub:lists.items.length>1?l.title:''};
+        if(t.due){ // due is a date; use the local day
+          const [y,m,d]=t.due.slice(0,10).split('-').map(Number);
+          o.start=new Date(y,m-1,d).getTime(); o.end=new Date(y,m-1,d,23,59,59).getTime(); o.noLead=true;
+        }
+        out.push(o);
+      }
+    }
+  }catch(e){ if(e.message==='expired') throw e; taskErr='To-do list not loaded ('+e.message+'). Is the Google Tasks API enabled?'; }
+  out.filter(t=>t.src==='task' && done.has(t.id)).forEach(completeInGoogle); // retry ticks Google missed
+  if($('useMail').checked){
+    const list = await g('https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=5&q='+encodeURIComponent('is:starred is:unread'));
+    for(const m of (list.messages||[])){
+      const d = await g('https://gmail.googleapis.com/gmail/v1/users/me/messages/'+m.id+'?format=metadata&metadataHeaders=Subject&metadataHeaders=From');
+      const h = n => (d.payload.headers.find(x=>x.name===n)||{}).value||'';
+      out.push({id:'mail'+m.id,title:'Reply: '+(h('Subject')||'(no subject)'),sub:h('From').replace(/<.*>/,'').trim(),src:'mail'});
+    }
+  }
+  return out;
+}
+
+async function refresh(){
+  try{
+    if(mode==='demo') tasks = demoTasks();
+    else if(mode==='google'){
+      if(NATIVE && (!token || Date.now()>tokenExp)){ native('getToken',{clientId:NATIVE_CLIENT_ID}); return; } // iPhone keeps you signed in
+      if(!token || Date.now()>tokenExp){ setStatus('Session expired. Press Connect Google again.'); tasks=[]; }
+      else { tasks = await googleTasks(); setStatus('Connected. Last checked '+new Date().toLocaleTimeString()+'.'+(taskErr?' '+taskErr:'')); }
+    } else tasks = [];
+  }catch(e){
+    setStatus(e.message==='expired'?'Session expired. Press Connect Google again.':'Error: '+e.message);
+  }
+  render(); checkNotify();
+}
+
+/* ---------- google sign in ---------- */
+function connect(){
+  if(NATIVE && !NATIVE_CLIENT_ID){ setStatus('This copy of Momo has no Google key yet. Add one in config.js (see README).'); return; }
+  const id = NATIVE ? NATIVE_CLIENT_ID : $('clientId').value.trim();
+  if(!id){ $('setup').open = true; setStatus('Paste your Google client ID first (see setup), or try Demo mode.'); return; }
+  store.set('clientId',id); store.set('useMail',$('useMail').checked);
+  if(NATIVE){
+    const nscope='https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/tasks'+($('useMail').checked?' https://www.googleapis.com/auth/gmail.readonly':'');
+    setStatus('Opening Google sign-in...'); native('signIn',{clientId:id,scope:nscope}); return;
+  }
+  if(!window.google||!google.accounts){ setStatus('Google sign-in script has not loaded. Check your internet.'); return; }
+  const scope = 'https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/tasks' +($('useMail').checked?' https://www.googleapis.com/auth/gmail.readonly':'');
+  google.accounts.oauth2.initTokenClient({
+    client_id:id, scope,
+    callback:r=>{
+      if(r.error){ setStatus('Sign-in failed: '+r.error); return; }
+      token=r.access_token; tokenExp=Date.now()+(r.expires_in-60)*1000;
+      mode='google'; store.set('mode',mode); $('disconnectBtn').hidden=false; refresh();
+    }
+  }).requestAccessToken();
+}
+function disconnect(){
+  if(NATIVE) native('signOut');
+  if(token&&window.google) google.accounts.oauth2.revoke(token,()=>{});
+  token=null; mode='none'; store.set('mode',mode); tasks=[]; $('disconnectBtn').hidden=true;
+  setStatus('Disconnected.'); render();
+}
+const setStatus = s => { $('status').textContent = s; const m=$('signinMsg'); if(m) m.textContent=s; };
+
+/* ---------- notifications ---------- */
+function notifyOn(){
+  if(NATIVE){ setStatus('Asking iPhone for permission...'); native('notifyPermission'); return; }
+  if(!('Notification' in window)){ setStatus('This browser has no notifications.'); return; }
+  Notification.requestPermission().then(p=>{ updateNotifyBtn(); if(p==='granted') new Notification(pn()+' says hi!',{body:"I'll tell you when I'm hungry."}); });
+}
+function updateNotifyBtn(){
+  const ok = NATIVE ? nativePerm : ('Notification' in window && Notification.permission==='granted');
+  $('notifyBtn').textContent = ok ? 'Notifications on' : 'Turn on notifications';
+  $('notifyBtn').disabled = ok;
+}
+/* iPhone app: hand the upcoming reminders to iOS so they arrive even when the app is closed */
+let schedSig='';
+function scheduleNative(){
+  if(!NATIVE) return;
+  const now=Date.now(), items=[];
+  tasks.forEach(t=>{
+    if(done.has(t.id)||!t.start) return;
+    const ts = t.noLead ? t.start+9*3600000 : t.start-lead();   // day-only to-dos remind at 9am
+    if(ts>now+5000) items.push({id:t.id,title:'🍌 Feed me!',body:t.title,ts});
+  });
+  items.sort((a,b)=>a.ts-b.ts);
+  const list=items.slice(0,60), sig=JSON.stringify(list);
+  if(sig===schedSig) return; schedSig=sig;
+  native('schedule',{items:list});
+}
+function checkNotify(){
+  if(NATIVE){ scheduleNative(); return; }
+  tasks.forEach(t=>{
+    if(statusOf(t)==='due' && !notified.has(t.id)){
+      notified.add(t.id); saveSets();
+      if('Notification' in window && Notification.permission==='granted')
+        new Notification('🍌 Feed me!',{body:t.title+' (that means: go do it!)'});
+    }
+  });
+}
+
+/* ---------- UI ---------- */
+const fmt = t => t.start ? new Date(t.start).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'}) : '';
+function render(){
+  tickHealth();
+  syncAuthUI();
+  const now=Date.now();
+  const order={due:0,overdue:1,upcoming:2,done:3};
+  const all = tasks.map(t=>({t,s:statusOf(t,now)})).sort((a,b)=>order[a.s]-order[b.s]||(a.t.start||0)-(b.t.start||0));
+  const TABSRC={cal:'cal',todo:'task',mail:'mail'};
+  const list = tab==='all' ? all : all.filter(x=>x.t.src===TABSRC[tab]);
+  document.querySelectorAll('#tabs .tab').forEach(b=>{
+    const k=b.dataset.tab, items = k==='all'?all:all.filter(x=>x.t.src===TABSRC[k]);
+    const n = items.filter(x=>x.s==='due'||x.s==='overdue').length;
+    b.classList.toggle('on',k===tab); b.querySelector('.cnt').textContent = n?'('+n+')':'';
+  });
+  const box=$('tasks'); box.innerHTML='';
+  if(!list.length){
+    const msg = {all:(NATIVE?'Nothing here yet. Sign in with Google below to fill your list.':'No tasks yet. Try Demo mode or connect Google.'),cal:'No calendar events coming up.',todo:'No to-dos. Add some in Google Tasks!',
+      mail:(mode==='google'&&$('useMail').checked)?'No starred unread emails.':(NATIVE?'Turn on emails in Settings, then sign in again.':'Turn on email tasks in Google setup to see emails here.')}[tab];
+    box.innerHTML='<p class="note">'+msg+'</p>';
+  }
+  list.forEach(({t,s})=>{
+    const d=document.createElement('div'); d.className='task '+s;
+    const label = s==='done'?'Fed!': s==='upcoming'?'Starts '+fmt(t): s==='overdue'?'Missed '+fmt(t): t.src==='task'?(t.start?'Due today':'To-do, no date'): t.start?'Now · '+fmt(t):'Waiting in inbox';
+    d.innerHTML='<div class="t"></div>'+(s==='done'||s==='upcoming'?'':'<button>Done 🍌</button>');
+    const tt=d.querySelector('.t'); tt.textContent=(t.src==='mail'?'✉ ':t.src==='task'?'☑ ':'')+t.title;
+    const sm=document.createElement('small'); sm.textContent=label+(t.sub?' · '+t.sub:''); tt.appendChild(sm);
+    const b=d.querySelector('button'); if(b) b.onclick=()=>feed(t);
+    box.appendChild(d);
+  });
+  // hearts: fullness = fed today vs total today
+  const filled = Math.ceil(hp/20);
+  const slider=$('hpTest'); if(document.activeElement!==slider) slider.value=Math.round(hp); $('hpVal').textContent=Math.round(hp);
+  $('hearts').innerHTML = Array.from({length:5},(_,i)=>'<span class="heart'+(i<filled?' on':'')+'"></span>').join('');
+  $('fedCount').textContent = '🍌 x'+fed.n;
+  updateMood();
+}
+
+function currentMood(){
+  if(deadAt) return Date.now()-deadAt<3000 ? 'dying' : 'dead';
+  if(Date.now()<eatingUntil) return 'eating';
+  const ss = tasks.map(t=>statusOf(t));
+  if(tasks.length && ss.every(s=>s==='done')) return Date.now()<partyUntil ? 'party' : 'happy';
+  if(Date.now()<cheekyUntil) return 'cheeky';
+  if(hp<=10) return 'faint';
+  if(hp<=25) return 'sick';
+  if(hp<=45) return 'weak';
+  if(hp<70 && (ss.includes('due')||ss.includes('overdue'))) return 'sad';
+  if(ss.includes('due')) return 'hungry';
+  if(ss.includes('overdue')) return 'sad';
+  if(!tasks.length) return 'sleep';
+  return 'idle';
+}
+function updateMood(){
+  const mood = currentMood();
+  const open = tasks.filter(t=>statusOf(t)==='due');
+  const bubble = $('bubble');
+  if(mood==='eating') bubble.textContent='Nom nom nom! Thank you!';
+  else if(mood==='weak') bubble.textContent='So... hungry... *tummy rumbles*';
+  else if(mood==='sick') bubble.textContent="I don't feel so good... *wobble*";
+  else if(mood==='faint') bubble.textContent='Tell my bananas... I loved them...';
+  else if(mood==='dying') bubble.textContent='Bye bye, cruel world... *thud*';
+  else if(mood==='dead') bubble.textContent='R.I.P. '+pn()+'. Finish a task to bring them back!';
+  else if(mood==='cheeky') bubble.textContent='Hehe, yummy! Thank you! 😜';
+  else if(mood==='party') bubble.textContent='YAY!! You finished EVERYTHING!! 🎉';
+  else if(mood==='hungry') bubble.textContent='Feed me: '+open[0].title+(open.length>1?' (+'+(open.length-1)+' more)':'')+'!';
+  else if(mood==='sad') bubble.textContent='I missed a snack... :(';
+  else if(mood==='happy') bubble.textContent='All full! You did everything!';
+  else if(mood==='sleep') bubble.textContent=mode==='none'?'Zzz... connect me to wake me up.':'Zzz... nothing on the menu.';
+  else bubble.textContent='Good monkey waiting for the next snack.';
+  $('monkey').className = ({party:'party',cheeky:'happy',eating:'happy',weak:'weak',sick:'sick',faint:'faint',dying:'dying',dead:'dead'})[mood]||'';
+  $('reviveBtn').hidden = mood!=='dead';
+  const gh=$('ghost'); const ghostWas=gh.classList.contains('on');
+  if(mood==='dead'){ if(!ghostWas){ drawMonkey('ghost',0,gh.getContext('2d')); gh.classList.add('on'); } }
+  else gh.classList.remove('on');
+  const m = (mood==='idle'||mood==='happy') && Date.now()<blinkUntil ? 'blink' : mood;
+  drawMonkey(m, eatFrame);
+  document.title = (mood==='hungry'?'🍌 ':'')+pn()+' the Monkey';
+}
+function completeInGoogle(t){
+  if(t.src!=='task' || !token) return;
+  fetch('https://tasks.googleapis.com/tasks/v1/lists/'+t.listId+'/tasks/'+t.rawId,{
+    method:'PATCH',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},
+    body:JSON.stringify({status:'completed'})
+  }).then(r=>{
+    if(r.ok) setStatus('Ticked off "'+t.title+'" in Google Tasks ✓');
+    else setStatus(r.status===403?'Google refused (403). Check Google Tasks API is enabled, then press Connect Google and allow editing tasks.':'Google said '+r.status+' when ticking off "'+t.title+'".');
+  }).catch(e=>setStatus('Could not reach Google: '+e.message));
+}
+function feed(t){
+  done.add(t.id); fed.n++; saveSets();
+  hp=Math.min(100,hp+25); if(deadAt){ deadAt=0; hp=Math.max(hp,30); } hpTs=Date.now(); saveHealth(); // a banana brings him back
+  completeInGoogle(t);
+  eatingUntil=Date.now()+2200; eatFrame=0;
+  cheekyUntil=eatingUntil+3000;                       // wink + tongue after eating
+  if(tasks.length && tasks.every(x=>done.has(x.id))) partyUntil=eatingUntil+12000; // jump & spin
+  render();
+}
+
+/* ---------- loops ---------- */
+setInterval(()=>{
+  eatFrame++; const now=Date.now();
+  if(eatingUntil && now>=eatingUntil){ eatingUntil=0; render(); return; }
+  const m=currentMood();
+  if(m==='eating'||m==='party'||m==='cheeky'||m==='dying') updateMood();
+  if(cheekyUntil && now>=cheekyUntil){ cheekyUntil=0; render(); }
+  if(partyUntil && now>=partyUntil){ partyUntil=0; render(); }
+},280);
+setInterval(()=>{ if(Math.random()<.5){ blinkUntil=Date.now()+180; updateMood(); setTimeout(updateMood,220);} },3000);
+setInterval(()=>{ render(); checkNotify(); },15000);
+setInterval(()=>{ if(mode!=='none') refresh(); },5*60000);
+
+/* ---------- app install ---------- */
+/* inside the iPhone app, a native shell hands us notifications + Google sign-in */
+// The iPhone app's Google sign-in key lives in config.js (kept out of the public repo)
+const NATIVE_CLIENT_ID = (window.MOMO_CONFIG && window.MOMO_CONFIG.nativeClientId) || '';
+const NATIVE = !!(window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.momo);
+let nativePerm = false;
+const native = (type,payload={}) => { try{ window.webkit.messageHandlers.momo.postMessage(Object.assign({type},payload)); }catch(e){} };
+window.__native = {
+  onPermission(ok){ nativePerm=!!ok; updateNotifyBtn(); setStatus(ok?'iPhone notifications are on. I will remind you before events.':'iPhone notifications are off. Turn them on in Settings > Notifications > Momo.'); },
+  onAuth(r){
+    if(r.error==='cancelled'){ setStatus('No problem. Tap the button whenever you are ready.'); return; }
+    if(r.error){ if(r.error!=='signed_out') setStatus('Sign-in failed: '+r.error); else if(mode==='google'){ mode='none'; store.set('mode',mode); $('disconnectBtn').hidden=true; setStatus('Press Connect Google to sign in.'); render(); } return; }
+    token=r.access_token; tokenExp=Date.now()+(r.expires_in-60)*1000;
+    mode='google'; store.set('mode',mode); $('disconnectBtn').hidden=false; refresh();
+    if(!$('adoptSignin').hidden){ store.set('signinSeen',true); afterCert(); }   // signed in during getting-started
+  }
+};
+if(NATIVE){
+  document.body.classList.add('native');
+  $('printBtn').hidden=true;
+  // the key is built in, so people only see a plain "Sign in with Google" button
+  $('clientId').hidden=true;
+  const help=document.querySelector('#setup > p.note'); if(help) help.hidden=true;
+  document.querySelector('#setup summary').textContent='Settings';
+  $('connectBtn').textContent='Sign in with Google';
+  $('disconnectBtn').textContent='Sign out';
+  $('testBtn').hidden=false;
+  $('testBtn').onclick=()=>{
+    native('schedule',{items:[{id:'momo-test',title:'🍌 Feed me!',body:'Test reminder: this is what '+pn()+' will send you.',ts:Date.now()+5000}]});
+    setStatus('Test reminder coming in 5 seconds. Swipe up to leave the app and watch for it!');
+  };
+  native('permStatus');
+}
+if(!NATIVE && 'serviceWorker' in navigator && location.protocol.startsWith('http')){ navigator.serviceWorker.register('/sw.js').catch(()=>{}); }
+
+/* ---------- boot ---------- */
+$('origin').textContent = location.origin;
+$('clientId').value = store.get('clientId','');
+$('useMail').checked = store.get('useMail',false);
+$('lead').value = store.get('lead',10);
+/* ---------- adoption ---------- */
+function applyName(){
+  const n=pn();
+  $('title').textContent=n.toUpperCase();
+  $('tasksTitle').textContent='TASKS - Keep '+n+' alive!';
+  $('reviveBtn').textContent='Revive '+n+' 🍌';
+  document.querySelectorAll('.petn').forEach(e=>e.textContent=n);
+  updateMood();
+}
+function showAdopt(step){
+  $('adopt').hidden=false;
+  $('adoptForm').hidden = step!=='form';
+  $('adoptCert').hidden = step!=='cert';
+  $('adoptDress').hidden = step!=='dress';
+  $('adoptSignin').hidden = step!=='signin';
+  if(step==='signin'){
+    document.querySelectorAll('.petn').forEach(e=>e.textContent=pet?pet.name:'Momo');
+    $('signinMsg').textContent=''; drawMonkey('cheeky',0,$('signinPic').getContext('2d')); return;
+  }
+  if(step==='dress'){ buildDress(); return; }
+  if(step==='form'){ drawMonkey('cheeky',0,$('adoptPic').getContext('2d')); setTimeout(()=>$('petName').focus(),50); }
+  else {
+    const d=new Date(pet.date).toLocaleDateString([],{year:'numeric',month:'long',day:'numeric'});
+    $('certName').textContent=pet.name; $('certOwner').textContent=pet.owner; $('certDate').textContent=d;
+    $('certId').textContent=pet.id; $('certSign').textContent=pet.owner;
+    document.querySelectorAll('.petn').forEach(e=>e.textContent=pet.name);
+    drawMonkey('idle',0,$('certPic').getContext('2d'));
+    const s=$('stamp'); s.classList.remove('thump'); void s.offsetWidth; s.classList.add('thump');
+  }
+}
+function adopt(){
+  const n=$('petName').value.trim();
+  if(!n){ $('adoptErr').textContent='Every monkey needs a name!'; return; }
+  pet={name:n.slice(0,14),owner:$('ownerName').value.trim().slice(0,24)||'A Very Kind Human',id:'MK-'+Math.floor(1000+Math.random()*9000),date:Date.now()};
+  store.set('pet',pet); applyName(); showAdopt('cert');
+}
+$('adoptBtn').onclick=adopt;
+$('petName').onkeydown=$('ownerName').onkeydown=e=>{ if(e.key==='Enter') adopt(); };
+/* dress-up screen */
+const HATS=[['none','No hat'],['party','🎉 Party hat'],['beanie','🧢 Beanie'],['tophat','🎩 Top hat'],['crown','👑 Crown']];
+const EXTRAS=[['flower','🌸 Flower'],['phones','🎧 Headphones'],['coat','🧥 Fur coat'],['shades','🕶 Sunglasses'],['bow','🎀 Tail bow']];
+function saveLook(){ store.set('look',look); buildDress(); updateMood(); }
+function buildDress(){
+  drawMonkey('idle',0,$('dressPic').getContext('2d'));
+  const mk=(row,items)=>{ const el=$(row); el.innerHTML=''; items.forEach(b=>el.appendChild(b)); };
+  mk('furRow',Object.keys(FUR).map(k=>{
+    const b=document.createElement('button'); b.className='swatch'+(look.fur===k?' on':''); b.title=k; b.style.background=FUR[k].brown;
+    b.onclick=()=>{look.fur=k;saveLook()}; return b; }));
+  mk('hatRow',HATS.map(([k,label])=>{
+    const b=document.createElement('button'); b.className='opt'+(look.hat===k?' on':''); b.textContent=label;
+    b.onclick=()=>{look.hat=k;saveLook()}; return b; }));
+  mk('extraRow',EXTRAS.map(([k,label])=>{
+    const b=document.createElement('button'); b.className='opt'+(look[k]?' on':''); b.textContent=label;
+    b.onclick=()=>{look[k]=!look[k];saveLook()}; return b; }));
+}
+$('randBtn').onclick=()=>{
+  const r=a=>a[Math.floor(Math.random()*a.length)];
+  look.fur=r(Object.keys(FUR)); look.hat=r(HATS)[0];
+  EXTRAS.forEach(([k])=>look[k]=Math.random()<.5); saveLook();
+};
+$('dressDone').onclick=()=>{ look.seen=true; store.set('look',look); $('adopt').hidden=true; cheekyUntil=Date.now()+3000; render(); };
+$('dressBtn').onclick=()=>showAdopt('dress');
+document.querySelectorAll('#tabs .tab').forEach(b=>b.onclick=()=>{ tab=b.dataset.tab; store.set('tab',tab); render(); });
+/* getting started: adopt -> sign in with Google (iPhone app) -> dress up -> home */
+function afterCert(){
+  if(NATIVE && !store.get('signinSeen',false) && mode!=='google'){ showAdopt('signin'); }
+  else if(!look.seen){ showAdopt('dress'); }
+  else { $('adopt').hidden=true; cheekyUntil=Date.now()+3000; render(); }
+}
+$('homeBtn').onclick=afterCert;
+$('signinBtn').onclick=()=>connect();
+$('signinLater').onclick=()=>{ store.set('signinSeen',true); afterCert(); };
+/* iPhone app: once signed in, hide all the setup bits and just show who is signed in */
+function syncAuthUI(){
+  if(!NATIVE) return;
+  const on = mode==='google';
+  $('demoBtn').hidden = true;
+  $('connectBtn').hidden = on;
+  $('disconnectBtn').hidden = !on;
+}
+$('printBtn').onclick=()=>window.print();
+$('paperBtn').onclick=()=>{ if(pet) showAdopt('cert'); else showAdopt('form'); };
+applyName();
+if(!pet) showAdopt('form');
+
+$('reviveBtn').onclick = revive;
+$('hpTest').oninput = e=>{ hp=+e.target.value; hpTs=Date.now(); if(hp<=0){ if(!deadAt) deadAt=Date.now(); } else deadAt=0; saveHealth(); render(); };
+$('lead').onchange =()=>{store.set('lead',$('lead').value);render()};
+$('demoBtn').onclick = ()=>{mode='demo';store.set('mode',mode);store.set('demoBase',Date.now());setStatus('Demo mode: pretend tasks that appear over the next while.');refresh()};
+$('connectBtn').onclick = connect;
+$('disconnectBtn').onclick = disconnect;
+$('refreshBtn').onclick = refresh;
+$('notifyBtn').onclick = notifyOn;
+updateNotifyBtn();
+if(mode==='google' && !NATIVE){ mode='none'; store.set('mode',mode); setStatus('Press Connect Google to sign in again.'); }
+if(mode==='google' && NATIVE){ $('disconnectBtn').hidden=false; setStatus('Signing in to Google...'); }
+if(mode==='demo') setStatus('Demo mode: pretend tasks.');
+refresh();
+</script>
+</body>
+</html>
